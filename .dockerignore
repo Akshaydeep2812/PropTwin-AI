@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+frontend
+blockchain
+storage
+ml/artifacts
+docs

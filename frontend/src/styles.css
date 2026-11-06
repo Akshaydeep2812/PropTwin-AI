@@ -1,0 +1,110 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces";
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #0a1628;
+  --color-navy-900: #0f2038;
+  --color-navy-800: #17304f;
+  --color-navy-700: #234468;
+  --color-teal-700: #0f766e;
+  --color-teal-600: #0d9488;
+  --color-teal-100: #ccfbf1;
+  --color-teal-50: #f0fdfa;
+  --color-brass-600: #96702b;
+  --color-brass-300: #dcc48f;
+  --color-brass-100: #f5ecd8;
+
+  /* A warm neutral in place of Tailwind's cool slate, so that every existing page sits on the same paper tone. */
+  --color-slate-50: #faf8f4;
+  --color-slate-100: #f2efe8;
+  --color-slate-200: #e6e2d8;
+  --color-slate-300: #d5d0c4;
+  --color-slate-400: #9d988c;
+  --color-slate-500: #6a6a68;
+  --color-slate-600: #51555a;
+  --color-slate-700: #3c424a;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+
+  --shadow-card: 0 1px 2px rgb(15 32 56 / 0.04), 0 4px 16px -8px rgb(15 32 56 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(15 32 56 / 0.05), 0 16px 32px -16px rgb(15 32 56 / 0.22);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #f6f4ef;
+  color: #0f2038;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal-600);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Headline figures: an estimate or a price, the number a page exists to show. */
+.figure {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.015em;
+}
+
+.page-enter {
+  animation: page-enter 220ms ease-out both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.hero-backdrop {
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, rgb(13 148 136 / 0.28), transparent 65%),
+    radial-gradient(40rem 24rem at 0% 110%, rgb(176 138 69 / 0.16), transparent 70%),
+    var(--color-navy-950);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  section {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+}

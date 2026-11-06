@@ -1,0 +1,101 @@
+# Local development stack. Not for production: see docs/DEPLOYMENT.md.
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema/init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u \"$$MYSQL_USER\" --password=\"$$MYSQL_PASSWORD\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  hardhat:
+    build:
+      context: ./blockchain
+    command: ["npx", "hardhat", "node", "--hostname", "0.0.0.0"]
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8545',{method:'POST',headers:{'content-type':'application/json'},body:'{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_chainId\",\"params\":[]}'}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  chain-deploy:
+    build:
+      context: ./blockchain
+    command: ["npx", "hardhat", "run", "scripts/deploy.ts", "--network", "localhost"]
+    environment:
+      LOCAL_RPC_URL: http://hardhat:8545
+    volumes:
+      - chain_abi:/app/abi
+      - chain_deployments:/app/deployments
+    depends_on:
+      hardhat:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      APP_ENV: ${APP_ENV:-development}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
+      COOKIE_SECURE: "false"
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+      DEMO_LOGIN_ENABLED: ${DEMO_LOGIN_ENABLED:-true}
+      BLOCKCHAIN_RPC_URL: http://hardhat:8545
+      BLOCKCHAIN_NETWORK_NAME: hardhat-local
+      BLOCKCHAIN_CHAIN_ID: "31337"
+      USE_HARDHAT_DEV_RELAYER: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml/artifacts:/app/ml/artifacts
+      - app_storage:/app/storage
+      - chain_abi:/app/blockchain/abi:ro
+      - chain_deployments:/app/blockchain/deployments:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      chain-deploy:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/v1/health/live')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE_URL: /api/v1
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  app_storage:
+  chain_abi:
+  chain_deployments:
